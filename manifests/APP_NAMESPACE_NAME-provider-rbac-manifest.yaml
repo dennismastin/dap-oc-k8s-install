@@ -1,0 +1,34 @@
+---
+# Service account role & binding for K8s secrets injection
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ APP_NAMESPACE_NAME }}
+
+# Cluster role to enable reading and patching of k8s secrets
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: secrets-access
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: [ "get", "patch" ]
+
+# Grants {{ APP_NAMESPACE_NAME }} service account ability to read and patch k8s secrets in namespace
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: {{ APP_NAMESPACE_NAME }}
+  name: secrets-access-binding
+subjects:
+  - kind: ServiceAccount
+    namespace: {{ APP_NAMESPACE_NAME }}
+    name: default
+roleRef:
+  kind: ClusterRole
+  name: secrets-access
+  apiGroup: rbac.authorization.k8s.io
+

@@ -1,0 +1,53 @@
+---
+# This policy whitelists three identities permitted to authenticate 
+# to the authn-k8s endpoint configured for the cluster.
+
+- !host
+  id: app-example-sidecar
+  annotations:
+    authn-k8s/namespace: {{ APP_NAMESPACE_NAME }}
+    authn-k8s/service-account: app-example-sidecar
+    authn-k8s/authentication-container-name: authenticator
+    kubernetes: "true"
+
+- !host
+  id: app-example-init
+  annotations:
+    authn-k8s/namespace: {{ APP_NAMESPACE_NAME }}
+    authn-k8s/service-account: app-example-init
+    authn-k8s/authentication-container-name: authenticator
+    kubernetes: "true"
+
+- !host
+  id: app-example-provider
+  annotations:
+    authn-k8s/namespace: {{ APP_NAMESPACE_NAME }}
+    authn-k8s/authentication-container-name: secrets-provider
+    kubernetes: "true"
+
+# Policy to aggregate application identities for namespace
+- !policy
+  id: {{ CLUSTER_AUTHN_ID }}/{{ APP_NAMESPACE_NAME }}
+  annotations:
+    description: Identities permitted to authenticate
+  body:
+  - !group
+    id: apps
+    annotations:
+      description: Group of identities permitted to call authn svc
+
+# Grant apps group role to identities
+- !grant
+  role: !group {{ CLUSTER_AUTHN_ID }}/{{ APP_NAMESPACE_NAME }}/apps
+  members:
+  - !host app-example-sidecar
+  - !host app-example-init
+  - !host app-example-provider
+
+# Grant authn-k8s consumer role to apps group
+- !grant
+  roles:
+  - !group conjur/authn-k8s/{{ CLUSTER_AUTHN_ID }}/consumers
+  members:
+  - !group {{ CLUSTER_AUTHN_ID }}/{{ APP_NAMESPACE_NAME }}/apps
+
